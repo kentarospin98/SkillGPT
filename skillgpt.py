@@ -15,14 +15,17 @@ from redisearch import RedisMemory
 logging.basicConfig()
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-    
+
+# torch.set_num_interop_threads(16) # Inter-op parallelism
+# torch.set_num_threads(16) # Intra-op parallelism
+
 def load_model(model_path, num_gpus):
     if num_gpus == 1:
         kwargs = {}
     else:
         kwargs = {
             "device_map": "auto",
-            "max_memory": {i: "13GiB" for i in range(num_gpus)},
+            # "max_memory": {i: "13GiB" for i in range(num_gpus)},
         }
 
     tokenizer = AutoTokenizer.from_pretrained(model_path)
@@ -31,7 +34,7 @@ def load_model(model_path, num_gpus):
        model_path, torch_dtype=torch.float16, low_cpu_mem_usage=True, **kwargs)
 
     if num_gpus == 1:
-        model.cuda()
+        model.cpu()
 
     if hasattr(model.config, "max_sequence_length"):
         context_len = model.config.max_sequence_length
@@ -75,13 +78,13 @@ class SkillGPT:
         for i in range(max_new_tokens):
             if i == 0:
                 out = model(
-                    torch.as_tensor([input_ids]).cuda(), use_cache=True)
+                    torch.as_tensor([input_ids]).cpu(), use_cache=True)
                 logits = out.logits
                 past_key_values = out.past_key_values
             else:
                 attention_mask = torch.ones(
-                    1, past_key_values[0][0].shape[-2] + 1, device="cuda")
-                out = model(input_ids=torch.as_tensor([[token]], device="cuda"),
+                    1, past_key_values[0][0].shape[-2] + 1, device="cpu")
+                out = model(input_ids=torch.as_tensor([[token]], device="cpu"),
                             use_cache=True,
                             attention_mask=attention_mask,
                             past_key_values=past_key_values)
@@ -127,7 +130,7 @@ class SkillGPT:
         input_ids = inputs.input_ids
         attention_mask = inputs.attention_mask
         n_tokens = attention_mask.sum(1, keepdim=True)
-        last_layer_hidden_state = model(input_ids.cuda(), output_hidden_states=True, use_cache=True)["hidden_states"][-1].cpu()
+        last_layer_hidden_state = model(input_ids.cpu(), output_hidden_states=True, use_cache=True)["hidden_states"][-1].cpu()
         
         res =  list(((attention_mask.unsqueeze(-1) * last_layer_hidden_state).sum(1) / n_tokens).numpy().ravel().astype(float))        
         # del input_ids, attention_mask, last_layer_hidden_state, inputs

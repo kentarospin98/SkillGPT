@@ -75,7 +75,7 @@ class RedisMemory:
                 continue
             print("Index:", esco_index)
             
-            df_data = pd.concat((pd.read_parquet(f"{ESCO_EMBEDDINGS_DIR}/df_{esco_index}_{language}.parquet") for language in ["en", "nl", "fr"]))            
+            df_data = pd.concat((pd.read_parquet(f"{ESCO_EMBEDDINGS_DIR}/df_{esco_index}_{language}.parquet") for language in ["en"]))            
             data_records, esco_embeddings = df_data.drop(columns=["emb"]).to_dict("records") , np.vstack(df_data["emb"])            
             vec_num = len(esco_embeddings)            
             for batch in chunk(zip(range(vec_num), zip(data_records, esco_embeddings)), 10000):
