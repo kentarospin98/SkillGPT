@@ -36,10 +36,11 @@ def chunk(it, size):
         yield p
 
 class RedisMemory:
-    def __init__(self, redis_host, redis_port, redis_password=None, wipe_redis_on_start=False):        
+    def __init__(self, redis_host, redis_port, redis_username=None, redis_password=None, wipe_redis_on_start=False):        
         self.redis = redis.Redis(
             host=redis_host,
             port=redis_port,
+            username=redis_username,
             password=redis_password,
             db=0  # Cannot be changed
         )           
