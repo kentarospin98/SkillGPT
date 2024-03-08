@@ -158,8 +158,8 @@ class SkillGPT:
 
     def label_embedding_redis(self, params):
         text_emb, esco_index, num_relevant = params["embedding"], params["esco_index"], params.get("num_relevant", 5)
-        redis_host, redis_port = params.get("redis_host", "localhost"), params.get("redis_port", "6379")
-        memory = RedisMemory(redis_host, redis_port)
+        redis_url = params.get("redis_url", None)
+        memory = RedisMemory(redis_url)
         res = memory.get_relevant(text_emb, esco_index, num_relevant)
         return res
         
@@ -202,7 +202,7 @@ class SkillGPT:
         # embed
         # save to parquet
         if self.memory_backend == "redis":
-            redis_host, redis_port, redis_username, redis_password = params.get("redis_host", "localhost"), params.get("redis_port", "6379"), params.get("redis_username", None), params.get("redis_password", None)
-            memory = RedisMemory(redis_host, redis_port,redis_username, redis_password, wipe_redis_on_start=True)
+            redis_url = params.get("redis_url", None)
+            memory = RedisMemory(redis_url, wipe_redis_on_start=True)
             memory.init_esco_embeddings()
         yield "ESCO embedding database is initialized."
