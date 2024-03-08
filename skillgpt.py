@@ -202,7 +202,7 @@ class SkillGPT:
         # embed
         # save to parquet
         if self.memory_backend == "redis":
-            redis_host, redis_port = params.get("redis_host", "localhost"), params.get("redis_port", "6379")
-            memory = RedisMemory(redis_host, redis_port, wipe_redis_on_start=True)
+            redis_host, redis_port, redis_password = params.get("redis_host", "localhost"), params.get("redis_port", "6379"), params.get("redis_password", "6379")
+            memory = RedisMemory(redis_host, redis_port, redis_password, wipe_redis_on_start=True)
             memory.init_esco_embeddings()
         yield "ESCO embedding database is initialized."
