@@ -9,8 +9,8 @@ import pandas as pd
 from dotenv import load_dotenv
 
 load_dotenv()
-REDIS_HOST = os.getenv("REDIS_HOST")
-
+REDIS_URL = os.getenv("REDIS_URL", "redis://default:1GPTSkill@104.248.48.144:6379")
+WORKER_ADDR = os.getenv("WORKER_ADDR", "https://55323-3000.4.codesphere.com")
 
 esco_indices = ["skills", "occupations", "skillGroups"]
 
@@ -51,7 +51,7 @@ def summrize(text, document_type):
 ### Assistant:          
 """
     sep = "###"
-    worker_addr = "http://127.0.0.1:21002"
+    worker_addr = WORKER_ADDR
     headers = {"User-Agent": "SkillGPT Client"}
     pload = {
         "model": "vicuna-13b",
@@ -80,13 +80,13 @@ def label(esco_index, text):
 {text}
 """
     sep = "###"
-    worker_addr = "http://127.0.0.1:21002"
+    worker_addr = WORKER_ADDR
     headers = {"User-Agent": "SkillGPT Client"}
     pload = {
         "model": "vicuna-13b",
         "prompt": prompt,
         "esco_index": esco_index,
-        "redis_host": REDIS_HOST,
+        "redis_url": REDIS_URL,
         "num_relevant": 10,
     }
     response = requests.post(worker_addr + "/label_text", headers=headers,
