@@ -8,6 +8,7 @@ import pandas as pd
 import torch
 from numpy.linalg import norm
 from transformers import AutoTokenizer, AutoModelForCausalLM
+from accelerate import infer_auto_device_map, init_empty_weights
 
 from constants import STREAM_INTERVAL
 from redisearch import RedisMemory
@@ -17,21 +18,19 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
     
 def load_model(model_path, num_gpus):
-    if num_gpus == 1:
-        kwargs = {}
-    else:
-        kwargs = {
-            "device_map": "auto",
-            "max_memory": {i: "13GiB" for i in range(num_gpus)},
-        }
+
+    kwargs = {
+        "device_map": "auto",
+        "max_memory": {0: "12GiB", "cpu": "24Gib"},
+    }
 
     tokenizer = AutoTokenizer.from_pretrained(model_path)
     tokenizer.add_special_tokens({'pad_token': '[PAD]'}) # To resolve the error 'tokenizer does not have a padding token'
     model = AutoModelForCausalLM.from_pretrained(
        model_path, torch_dtype=torch.float16, low_cpu_mem_usage=True, **kwargs)
 
-    if num_gpus == 1:
-        model.cuda()
+    #if num_gpus == 1:
+    #    model.cuda()
 
     if hasattr(model.config, "max_sequence_length"):
         context_len = model.config.max_sequence_length
