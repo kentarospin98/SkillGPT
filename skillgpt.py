@@ -157,6 +157,7 @@ class SkillGPT:
         return df_res   
 
     def label_embedding_redis(self, params):
+        logging.info("Getting embedding from redis")
         text_emb, esco_index, num_relevant = params["embedding"], params["esco_index"], params.get("num_relevant", 5)
         redis_url = params.get("redis_url", None)
         memory = RedisMemory(redis_url)
@@ -165,6 +166,7 @@ class SkillGPT:
         
         
     def label_text_gate(self, params):
+        logging.info("Embedding text")
         params["embedding"] = self.get_embedding(params["prompt"])
         res = self.label_embedding_redis(params)
         yield json.dumps({"labels": res})
@@ -204,5 +206,4 @@ class SkillGPT:
         if self.memory_backend == "redis":
             redis_url = params.get("redis_url", None)
             memory = RedisMemory(redis_url, wipe_redis_on_start=True)
-            memory.init_esco_embeddings()
-        yield "ESCO embedding database is initialized."
+            return memory.init_esco_embeddings()

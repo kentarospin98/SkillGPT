@@ -2,6 +2,7 @@ import itertools
 import json
 
 from typing import Any, List, Optional
+from time import sleep
 
 
 import numpy as np
@@ -59,6 +60,7 @@ class RedisMemory:
                 yield p
 
         for esco_index in REDIS_ESCO_INDICES:            
+            records = 0
             try:                
                 self.redis.ft(f"{esco_index}").create_index(
                     fields=SCHEMA,
@@ -74,13 +76,30 @@ class RedisMemory:
             
             df_data = pd.concat((pd.read_parquet(f"{ESCO_EMBEDDINGS_DIR}/df_{esco_index}_{language}.parquet") for language in ["en", "nl", "fr"]))            
             data_records, esco_embeddings = df_data.drop(columns=["emb"]).to_dict("records") , np.vstack(df_data["emb"])            
-            vec_num = len(esco_embeddings)            
-            for batch in chunk(zip(range(vec_num), zip(data_records, esco_embeddings)), 10000):
+            vec_num = len(esco_embeddings)
+            batchsize = 1000
+            print("Inserting", vec_num, "Records")
+            for batch in chunk(zip(range(vec_num), zip(data_records, esco_embeddings)), batchsize):
                 pipe = self.redis.pipeline(transaction=False)
-                for key, (data, embedding) in batch.items():                    
-                    pipe.hset(f"{esco_index}:{key}", mapping={b"data": json.dumps(data), "embedding": embedding.astype(np.float32).tobytes()})                    
-                pipe.execute()            
-            print(f"Inserting {vec_num} data entries into memory.")            
+                print(f"Loading {batchsize} records")
+                for key, (data, embedding) in batch.items():    
+                    try:                
+                        pipe.hset(f"{esco_index}:{key}", mapping={b"data": json.dumps(data), "embedding": embedding.astype(np.float32).tobytes()})
+                    except Exception as e:
+                        print(e)
+
+                print(f"Insering {batchsize} records")
+                while True:
+                    try:
+                        pipe.execute()
+                        break
+                    except Exception as e:
+                        print(e)
+                records += batchsize
+                yield "Records added: " + str(records) + "\n"
+                print("Records added: " + str(records))
+                sleep(0.01)
+            print(f"Inserted {vec_num} data entries into memory.")            
             self.redis.set(f'{esco_index}-vec_num', vec_num)
         print("Total number of keys:", len(self.redis.keys()))
             
